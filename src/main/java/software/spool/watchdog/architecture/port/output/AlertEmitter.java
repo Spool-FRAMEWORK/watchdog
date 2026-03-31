@@ -1,6 +1,6 @@
-package software.spool.watchdog.port.output;
+package software.spool.watchdog.architecture.port.output;
 
-import software.spool.watchdog.model.ModuleRegistration;
+import software.spool.watchdog.architecture.model.ModuleRegistration;
 import java.time.Duration;
 
 public interface AlertEmitter {

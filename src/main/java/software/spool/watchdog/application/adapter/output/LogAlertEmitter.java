@@ -1,7 +1,7 @@
-package software.spool.watchdog.adapter.output;
+package software.spool.watchdog.application.adapter.output;
 
-import software.spool.watchdog.model.ModuleRegistration;
-import software.spool.watchdog.port.output.AlertEmitter;
+import software.spool.watchdog.architecture.model.ModuleRegistration;
+import software.spool.watchdog.architecture.port.output.AlertEmitter;
 
 import java.time.Duration;
 

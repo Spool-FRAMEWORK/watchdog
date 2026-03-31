@@ -1,4 +1,6 @@
-package software.spool.watchdog.model;
+package software.spool.watchdog.architecture.model;
+
+import software.spool.core.model.watchdog.ModuleStatus;
 
 import java.time.Instant;
 
