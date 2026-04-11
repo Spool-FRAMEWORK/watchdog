@@ -3,7 +3,7 @@ WORKDIR /app
 
 RUN addgroup -S watchdog && adduser -S watchdog -G watchdog
 
-COPY /target/watchdog-1.0.0-SNAPSHOT.jar app.jar
+COPY /target/watchdog-1.0.0.jar app.jar
 
 USER watchdog
 

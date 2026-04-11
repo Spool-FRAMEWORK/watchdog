@@ -3,10 +3,14 @@ RUN apk add --no-cache curl wget
 
 WORKDIR /app
 
-RUN addgroup -S spool && adduser -S feeder -G spool
-USER feeder
+RUN addgroup -S spool && adduser -S watchdog -G spool
+USER watchdog
 
-COPY target/sec-feeder.jar app.jar
+COPY target/watchdog.jar app.jar
+
+ENV SERVICE_NAME=spool-watchdog
+ENV OTEL_LOGS_ENDPOINT=http://host.docker.internal:3100/otlp/v1/logs
+ENV OTEL_TRACES_ENDPOINT=http://host.docker.internal:4318/v1/traces
 
 EXPOSE 8080
 

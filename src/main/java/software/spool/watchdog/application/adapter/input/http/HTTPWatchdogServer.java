@@ -1,10 +1,8 @@
 package software.spool.watchdog.application.adapter.input.http;
 
 import io.javalin.Javalin;
-import software.spool.core.adapter.jackson.PayloadDeserializerFactory;
 import software.spool.core.adapter.jackson.RecordSerializerFactory;
 import software.spool.core.model.watchdog.HeartbeatPayload;
-import software.spool.core.model.watchdog.ModuleIdentity;
 import software.spool.watchdog.architecture.WatchdogService;
 import software.spool.watchdog.architecture.port.output.WatchdogServer;
 
@@ -16,25 +14,11 @@ public class HTTPWatchdogServer implements WatchdogServer {
         this.port = port;
         this.app = Javalin.create(config -> {});
 
-        app.post("/register", ctx -> {
-            try {
-                ModuleIdentity identity = PayloadDeserializerFactory.json()
-                        .as(ModuleIdentity.class).deserialize(ctx.body());
-                service.register(identity);
-                ctx.status(201);
-            } catch (IllegalArgumentException e) {
-                ctx.status(400).result("Bad request: " + e.getMessage());
-            } catch (Exception e) {
-                ctx.status(500).result("Error registering module: " + e.getMessage());
-            }
-        });
-
         app.post("/heartbeat", ctx -> {
             try {
                 HeartbeatPayload payload = ctx.bodyAsClass(HeartbeatPayload.class);
-                if (!service.beat(payload.moduleId(), payload.status()))
-                    ctx.status(404).result("Module not registered: " + payload.moduleId());
-                else ctx.status(204);
+                service.beat(payload.identity(), payload.status());
+                ctx.status(204);
             } catch (Exception e) {
                 ctx.status(500).result("Error processing heartbeat: "+ e.getMessage());
             }

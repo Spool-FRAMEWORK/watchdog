@@ -1,18 +1,35 @@
 package software.spool.watchdog.application.adapter.output;
 
 import software.spool.core.model.watchdog.ModuleIdentity;
+import software.spool.core.port.watchdog.ModuleLogger;
 import software.spool.watchdog.architecture.port.output.ModuleObserver;
 
 import java.time.Duration;
 
-public class OTELModuleObserver implements ModuleObserver {
+public class OpenTelemetryModuleObserver implements ModuleObserver {
+    private final ModuleLogger logger;
+
+    public OpenTelemetryModuleObserver(ModuleLogger logger) {
+        this.logger = logger;
+    }
+
     @Override
-    public void onModuleDown(ModuleIdentity identity, Duration silence) {
-        System.out.println(String.format("MODULE DOWN: {} <UNK> silence={}", identity.moduleId(), silence));
+    public void onModuleStarted(ModuleIdentity identity) {
+        logger.moduleStarted(identity);
+    }
+
+    @Override
+    public void onModuleDegraded(ModuleIdentity identity, Duration silence) {
+        logger.moduleDegraded(identity, "Module has been in silence for " + silence);
+    }
+
+    @Override
+    public void onModuleFinished(ModuleIdentity identity) {
+        logger.moduleDegraded(identity, "Module has been eliminated from registry due to zombie timeout");
     }
 
     @Override
     public void onModuleRecovered(ModuleIdentity identity, Duration downtime) {
-        System.out.println(String.format("MODULE RECOVERED: {} <UNK> downtime={}", identity.moduleId(), downtime));
+        logger.moduleStarted(identity);
     }
 }

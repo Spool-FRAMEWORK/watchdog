@@ -1,33 +1,33 @@
 package software.spool.watchdog.application;
 
-import software.spool.core.utils.polling.PollingScheduler;
+import software.spool.core.adapter.otel.OpenTelemetryModuleLogger;
 import software.spool.core.utils.polling.ThreadedPollingScheduler;
 import software.spool.watchdog.application.adapter.input.http.HTTPWatchdogServer;
-import software.spool.watchdog.application.adapter.output.EnvModuleConfigurationProvider;
+import software.spool.watchdog.application.adapter.output.InMemoryInbox;
 import software.spool.watchdog.application.adapter.output.InMemoryModuleRegistry;
-import software.spool.watchdog.application.adapter.output.LogAlertEmitter;
+import software.spool.watchdog.application.adapter.output.OpenTelemetryModuleObserver;
 import software.spool.watchdog.architecture.Watchdog;
 import software.spool.watchdog.architecture.WatchdogMonitor;
 import software.spool.watchdog.architecture.WatchdogService;
-import software.spool.watchdog.architecture.port.output.AlertEmitter;
-import software.spool.watchdog.architecture.port.output.ModuleConfigurationProvider;
+import software.spool.watchdog.architecture.port.output.Inbox;
+import software.spool.watchdog.architecture.port.output.ModuleObserver;
 import software.spool.watchdog.architecture.port.output.ModuleRegistry;
 import software.spool.watchdog.architecture.port.output.WatchdogServer;
 
 public class Application {
+    private final Inbox inbox;
     private final ModuleRegistry registry;
-    private final ModuleConfigurationProvider configurationProvider;
     private final WatchdogService service;
     private final int port;
     private final WatchdogServer server;
-    private final AlertEmitter emitter;
+    private final ModuleObserver emitter;
     private final WatchdogMonitor monitor;
     private final Watchdog watchdog;
 
     public Application() {
+        this.inbox = initializeInbox();
         this.registry = initializeRegistry();
         this.port = initializePort();
-        this.configurationProvider = initializeConfigurationProvider();
         this.service = initializeService();
         this.server = initializeServer();
         this.emitter = initializeEmitter();
@@ -35,24 +35,42 @@ public class Application {
         this.watchdog = initializeWatchdog();
     }
 
+    private Inbox initializeInbox() {
+        return new InMemoryInbox();
+    }
+
     private Watchdog initializeWatchdog() {
         return new Watchdog(server, monitor);
     }
 
-    private ModuleConfigurationProvider initializeConfigurationProvider() {
-        return new EnvModuleConfigurationProvider();
-    }
-
-    private AlertEmitter initializeEmitter() {
-        return new LogAlertEmitter();
+    private ModuleObserver initializeEmitter() {
+//        return new ModuleObserver() {
+//
+//            @Override
+//            public void onModuleStarted(ModuleIdentity identity) {
+//
+//            }
+//
+//            @Override
+//            public void onModuleDegraded(ModuleIdentity identity, Duration silence) {
+//
+//            }
+//
+//            @Override
+//            public void onModuleFinished(ModuleIdentity identity) {
+//
+//            }
+//
+//            @Override
+//            public void onModuleRecovered(ModuleIdentity identity, Duration downtime) {
+//
+//            }
+//        };
+        return new OpenTelemetryModuleObserver(new OpenTelemetryModuleLogger());
     }
 
     private WatchdogMonitor initializeMonitor() {
-        return new WatchdogMonitor(registry, emitter, createPollingScheduler(), createPollingScheduler());
-    }
-
-    private PollingScheduler createPollingScheduler() {
-        return new ThreadedPollingScheduler();
+        return new WatchdogMonitor(registry, inbox, emitter, new ThreadedPollingScheduler());
     }
 
     private WatchdogServer initializeServer() {
@@ -60,7 +78,7 @@ public class Application {
     }
 
     private WatchdogService initializeService() {
-        return new WatchdogService(registry, configurationProvider);
+        return new WatchdogService(inbox, registry);
     }
 
     private int initializePort() {

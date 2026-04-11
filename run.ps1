@@ -1,5 +1,5 @@
 mvn clean package
-docker stop feeder
-docker rm feeder
-docker build -t feeder .
-docker run -d --name feeder -p :8080 feeder
+docker stop watchdog
+docker rm watchdog
+docker build -t watchdog .
+docker run -d --name watchdog -p 8090:8090 watchdog
