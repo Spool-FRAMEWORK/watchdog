@@ -11,6 +11,8 @@ COPY target/watchdog.jar app.jar
 ENV SERVICE_NAME=spool-watchdog
 ENV OTEL_LOGS_ENDPOINT=http://host.docker.internal:3100/otlp/v1/logs
 ENV OTEL_TRACES_ENDPOINT=http://host.docker.internal:4318/v1/traces
+ENV MODULE_TIMEOUT_SECONDS=30
+ENV ZOMBIE_TIMEOUT_SECONDS=300
 
 EXPOSE 8080
 

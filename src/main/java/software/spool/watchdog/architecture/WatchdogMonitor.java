@@ -21,18 +21,18 @@ public class WatchdogMonitor {
     private final ModuleObserver moduleObserver;
     private final PollingScheduler statusScheduler;
     private volatile CancellationToken token;
-
     private final Map<ModuleIdentity, Instant> downSince = new ConcurrentHashMap<>();
     private final Map<ModuleIdentity, ModuleStatus> lastReported = new ConcurrentHashMap<>();
+    private final Duration moduleTimeout;
+    private final Duration zombieTimeout;
 
-    private static final Duration MODULE_TIMEOUT = Duration.ofSeconds(30);
-    private static final Duration ZOMBIE_TIMEOUT = Duration.ofMinutes(5);
-
-    public WatchdogMonitor(ModuleRegistry registry, Inbox inbox, ModuleObserver moduleObserver, PollingScheduler statusScheduler) {
+    public WatchdogMonitor(ModuleRegistry registry, Inbox inbox, ModuleObserver moduleObserver, PollingScheduler statusScheduler, Duration moduleTimeout, Duration zombieTimeout) {
         this.registry = registry;
         this.inbox = inbox;
         this.moduleObserver = moduleObserver;
         this.statusScheduler = statusScheduler;
+        this.moduleTimeout = moduleTimeout;
+        this.zombieTimeout = zombieTimeout;
         this.token = CancellationToken.NOOP;
     }
 
@@ -64,12 +64,12 @@ public class WatchdogMonitor {
             handleZombies();
             registry.findAll().forEach(module -> {
                 Duration silence = Duration.between(module.lastSeen(), now);
-                boolean timedOut   = silence.compareTo(MODULE_TIMEOUT) > 0;
+                boolean timedOut   = silence.compareTo(moduleTimeout) > 0;
                 boolean isDegraded = module.status() == ModuleStatus.DEGRADED;
                 if (timedOut && !isDegraded) {
                     registry.update(module.status(ModuleStatus.DEGRADED));
                     downSince.put(module.identity(), now);
-                    moduleObserver.onModuleDegraded(module.identity(), silence);
+                    moduleObserver.onModuleDegraded(module.identity(), "Module degraded due to timeout");
                 } else if (!timedOut && isDegraded) {
                     Instant wentDown = downSince.remove(module.identity());
                     Duration downtime = wentDown != null ? Duration.between(wentDown, now) : Duration.ZERO;
@@ -86,14 +86,14 @@ public class WatchdogMonitor {
     private void handleZombies() {
         Instant now = Instant.now();
         registry.findAll().stream()
-                .filter(module -> Duration.between(module.lastSeen(), now).compareTo(ZOMBIE_TIMEOUT) > 0)
+                .filter(module -> Duration.between(module.lastSeen(), now).compareTo(zombieTimeout) > 0)
                 .map(ModuleState::identity)
                 .toList()
                 .forEach(m -> {
                     registry.remove(m);
                     downSince.remove(m);
                     lastReported.remove(m);
-                    moduleObserver.onModuleFinished(m);
+                    moduleObserver.onModuleFinished(m, "Zombie detected");
                 });
     }
 }

@@ -14,6 +14,8 @@ import software.spool.watchdog.architecture.port.output.ModuleObserver;
 import software.spool.watchdog.architecture.port.output.ModuleRegistry;
 import software.spool.watchdog.architecture.port.output.WatchdogServer;
 
+import java.time.Duration;
+
 public class Application {
     private final Inbox inbox;
     private final ModuleRegistry registry;
@@ -44,33 +46,22 @@ public class Application {
     }
 
     private ModuleObserver initializeEmitter() {
-//        return new ModuleObserver() {
-//
-//            @Override
-//            public void onModuleStarted(ModuleIdentity identity) {
-//
-//            }
-//
-//            @Override
-//            public void onModuleDegraded(ModuleIdentity identity, Duration silence) {
-//
-//            }
-//
-//            @Override
-//            public void onModuleFinished(ModuleIdentity identity) {
-//
-//            }
-//
-//            @Override
-//            public void onModuleRecovered(ModuleIdentity identity, Duration downtime) {
-//
-//            }
-//        };
         return new OpenTelemetryModuleObserver(new OpenTelemetryModuleLogger());
     }
 
     private WatchdogMonitor initializeMonitor() {
-        return new WatchdogMonitor(registry, inbox, emitter, new ThreadedPollingScheduler());
+        long moduleTimeoutSec = Long.parseLong(System.getenv()
+                .getOrDefault("MODULE_TIMEOUT_SECONDS", "30"));
+        long zombieTimeoutSec = Long.parseLong(System.getenv()
+                .getOrDefault("ZOMBIE_TIMEOUT_SECONDS", "300"));
+        return new WatchdogMonitor(
+                registry,
+                inbox,
+                emitter,
+                new ThreadedPollingScheduler(),
+                Duration.ofSeconds(moduleTimeoutSec),
+                Duration.ofSeconds(zombieTimeoutSec)
+        );
     }
 
     private WatchdogServer initializeServer() {
