@@ -1,5 +1,6 @@
 package software.spool.watchdog.application;
 
+import software.spool.core.adapter.otel.OTELConfig;
 import software.spool.core.adapter.otel.OpenTelemetryModuleLogger;
 import software.spool.core.utils.polling.ThreadedPollingScheduler;
 import software.spool.watchdog.application.adapter.input.http.HTTPWatchdogServer;
@@ -14,6 +15,7 @@ import software.spool.watchdog.architecture.port.output.ModuleObserver;
 import software.spool.watchdog.architecture.port.output.ModuleRegistry;
 import software.spool.watchdog.architecture.port.output.WatchdogServer;
 
+import java.io.IOException;
 import java.time.Duration;
 
 public class Application {
@@ -26,7 +28,8 @@ public class Application {
     private final WatchdogMonitor monitor;
     private final Watchdog watchdog;
 
-    public Application() {
+    public Application() throws IOException {
+        OTELConfig.init("spool-watchdog");
         this.inbox = initializeInbox();
         this.registry = initializeRegistry();
         this.port = initializePort();
@@ -64,7 +67,7 @@ public class Application {
         );
     }
 
-    private WatchdogServer initializeServer() {
+    private WatchdogServer initializeServer() throws IOException {
         return new HTTPWatchdogServer(service, port);
     }
 
