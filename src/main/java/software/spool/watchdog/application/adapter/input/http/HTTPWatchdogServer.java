@@ -1,6 +1,7 @@
 package software.spool.watchdog.application.adapter.input.http;
 
 import io.javalin.Javalin;
+import io.javalin.plugin.bundled.CorsPluginConfig;
 import software.spool.core.adapter.jackson.RecordSerializerFactory;
 import software.spool.core.model.watchdog.HeartbeatPayload;
 import software.spool.watchdog.architecture.WatchdogService;
@@ -12,7 +13,11 @@ public class HTTPWatchdogServer implements WatchdogServer {
 
     public HTTPWatchdogServer(WatchdogService service, int port) {
         this.port = port;
-        this.app = Javalin.create(config -> {});
+        this.app = Javalin.create(config -> {
+            config.bundledPlugins.enableCors(cors -> {
+                cors.addRule(CorsPluginConfig.CorsRule::anyHost);
+            });
+        });
 
         app.post("/heartbeat", ctx -> {
             try {
@@ -26,7 +31,7 @@ public class HTTPWatchdogServer implements WatchdogServer {
 
         app.get("/health", ctx -> {
             try {
-                ctx.json(RecordSerializerFactory.record().serialize(service.query()));
+                ctx.json(new String(RecordSerializerFactory.record().serialize(service.query())));
             } catch (Exception e) {
                 ctx.status(500).result("Error querying health: " + e.getMessage());
             }
