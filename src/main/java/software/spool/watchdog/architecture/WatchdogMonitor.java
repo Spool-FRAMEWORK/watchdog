@@ -3,6 +3,8 @@ package software.spool.watchdog.architecture;
 import software.spool.core.model.watchdog.ModuleIdentity;
 import software.spool.core.model.watchdog.ModuleState;
 import software.spool.core.model.watchdog.ModuleStatus;
+import software.spool.core.port.metrics.MetricsRegistry;
+import software.spool.core.port.metrics.SpoolMetrics;
 import software.spool.core.utils.polling.CancellationToken;
 import software.spool.core.utils.polling.PollingPolicy;
 import software.spool.core.utils.polling.PollingScheduler;
@@ -25,14 +27,20 @@ public class WatchdogMonitor {
     private final Map<ModuleIdentity, ModuleStatus> lastReported = new ConcurrentHashMap<>();
     private final Duration moduleTimeout;
     private final Duration zombieTimeout;
+    private final MetricsRegistry.CounterMetric timeouts;
+    private final MetricsRegistry.CounterMetric zombies;
+    private final MetricsRegistry.TimerMetric checkTimer;
 
-    public WatchdogMonitor(ModuleRegistry registry, Inbox inbox, ModuleObserver moduleObserver, PollingScheduler statusScheduler, Duration moduleTimeout, Duration zombieTimeout) {
+    public WatchdogMonitor(ModuleRegistry registry, Inbox inbox, ModuleObserver moduleObserver, PollingScheduler statusScheduler, Duration moduleTimeout, Duration zombieTimeout, MetricsRegistry.CounterMetric timeouts, MetricsRegistry.CounterMetric zombies, MetricsRegistry.TimerMetric checkTimer) {
         this.registry = registry;
         this.inbox = inbox;
         this.moduleObserver = moduleObserver;
         this.statusScheduler = statusScheduler;
         this.moduleTimeout = moduleTimeout;
         this.zombieTimeout = zombieTimeout;
+        this.timeouts = timeouts;
+        this.zombies = zombies;
+        this.checkTimer = checkTimer;
         this.token = CancellationToken.NOOP;
     }
 
@@ -49,6 +57,7 @@ public class WatchdogMonitor {
     }
 
     private void check() {
+        long start = System.nanoTime();
         try {
             inbox.read().forEach(reported -> {
                 lastReported.put(reported.identity(), reported.status());
@@ -70,6 +79,7 @@ public class WatchdogMonitor {
                     registry.update(module.status(ModuleStatus.DEGRADED));
                     downSince.put(module.identity(), now);
                     moduleObserver.onModuleDegraded(module.identity(), "Module degraded due to timeout");
+                    timeouts.increment(Map.of(SpoolMetrics.Attributes.MODULE, module.identity().toString()));
                 } else if (!timedOut && isDegraded) {
                     Instant wentDown = downSince.remove(module.identity());
                     Duration downtime = wentDown != null ? Duration.between(wentDown, now) : Duration.ZERO;
@@ -80,6 +90,8 @@ public class WatchdogMonitor {
             });
         } catch (Exception e) {
             System.err.println("Error during watchdog check: " + e);
+        } finally {
+            checkTimer.record((System.nanoTime() - start) / 1_000_000, Map.of());
         }
     }
 
@@ -94,6 +106,7 @@ public class WatchdogMonitor {
                     downSince.remove(m);
                     lastReported.remove(m);
                     moduleObserver.onModuleFinished(m, "Zombie detected");
+                    zombies.increment(Map.of(SpoolMetrics.Attributes.MODULE, m.toString()));
                 });
     }
 }
