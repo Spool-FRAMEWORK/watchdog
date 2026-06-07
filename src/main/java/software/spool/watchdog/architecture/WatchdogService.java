@@ -13,6 +13,13 @@ import software.spool.watchdog.architecture.port.output.ModuleRegistry;
 import java.util.Collection;
 import java.util.Map;
 
+/**
+ * Domain service that implements the two input ports of the watchdog.
+ * <p>
+ * On every {@link #beat} call it increments the heartbeat counter metric and writes
+ * the incoming state to the {@link Inbox} for asynchronous processing by
+ * {@code WatchdogMonitor}. {@link #query} delegates directly to the {@link ModuleRegistry}.
+ */
 public class WatchdogService implements Heartbeat, QueryHealth {
     private final ModuleRegistry registry;
     private final Inbox inbox;

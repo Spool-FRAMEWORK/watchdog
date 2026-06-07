@@ -17,6 +17,19 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Background monitor that runs a periodic health-check loop (every second) to detect
+ * two failure modes:
+ * <ul>
+ *   <li><b>Timeout</b> — a module that stops sending heartbeats for longer than
+ *       {@code moduleTimeout} is marked {@code DEGRADED} and triggers
+ *       {@link ModuleObserver#onModuleDegraded}.</li>
+ *   <li><b>Zombie</b> — a module that remains silent beyond {@code zombieTimeout} is
+ *       permanently removed from the registry via {@link ModuleObserver#onModuleFinished}.</li>
+ * </ul>
+ * Both thresholds are configurable via environment variables
+ * ({@code MODULE_TIMEOUT_SECONDS}, {@code ZOMBIE_TIMEOUT_SECONDS}).
+ */
 public class WatchdogMonitor {
     private final ModuleRegistry registry;
     private final Inbox inbox;
