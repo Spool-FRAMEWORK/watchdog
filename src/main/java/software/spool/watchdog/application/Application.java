@@ -1,7 +1,9 @@
 package software.spool.watchdog.application;
 
-import software.spool.core.adapter.otel.OTELConfig;
+import software.spool.core.adapter.otel.OpenTelemetryMetricsRegistry;
 import software.spool.core.adapter.otel.OpenTelemetryModuleLogger;
+import software.spool.core.port.metrics.MetricsRegistry;
+import software.spool.core.port.metrics.SpoolMetrics;
 import software.spool.core.utils.polling.ThreadedPollingScheduler;
 import software.spool.watchdog.application.adapter.input.http.HTTPWatchdogServer;
 import software.spool.watchdog.application.adapter.output.InMemoryInbox;
@@ -15,7 +17,6 @@ import software.spool.watchdog.architecture.port.output.ModuleObserver;
 import software.spool.watchdog.architecture.port.output.ModuleRegistry;
 import software.spool.watchdog.architecture.port.output.WatchdogServer;
 
-import java.io.IOException;
 import java.time.Duration;
 
 public class Application {
@@ -28,15 +29,16 @@ public class Application {
     private final WatchdogMonitor monitor;
     private final Watchdog watchdog;
 
-    public Application() throws IOException {
-        OTELConfig.init("spool-watchdog");
+    public Application() {
+        MetricsRegistry metrics = new OpenTelemetryMetricsRegistry();
+        MetricsRegistry.CounterMetric heartbeats = metrics.counter(SpoolMetrics.Watchdog.HEARTBEATS_TOTAL, SpoolMetrics.Watchdog.HEARTBEATS_TOTAL_DESC, "1");
         this.inbox = initializeInbox();
         this.registry = initializeRegistry();
         this.port = initializePort();
-        this.service = initializeService();
+        this.service = initializeService(heartbeats);
         this.server = initializeServer();
         this.emitter = initializeEmitter();
-        this.monitor = initializeMonitor();
+        this.monitor = initializeMonitor(metrics);
         this.watchdog = initializeWatchdog();
     }
 
@@ -52,7 +54,7 @@ public class Application {
         return new OpenTelemetryModuleObserver(new OpenTelemetryModuleLogger());
     }
 
-    private WatchdogMonitor initializeMonitor() {
+    private WatchdogMonitor initializeMonitor(MetricsRegistry metrics) {
         long moduleTimeoutSec = Long.parseLong(System.getenv()
                 .getOrDefault("MODULE_TIMEOUT_SECONDS", "30"));
         long zombieTimeoutSec = Long.parseLong(System.getenv()
@@ -63,16 +65,17 @@ public class Application {
                 emitter,
                 new ThreadedPollingScheduler(),
                 Duration.ofSeconds(moduleTimeoutSec),
-                Duration.ofSeconds(zombieTimeoutSec)
+                Duration.ofSeconds(zombieTimeoutSec),
+                metrics
         );
     }
 
-    private WatchdogServer initializeServer() throws IOException {
+    private WatchdogServer initializeServer() {
         return new HTTPWatchdogServer(service, port);
     }
 
-    private WatchdogService initializeService() {
-        return new WatchdogService(inbox, registry);
+    private WatchdogService initializeService(MetricsRegistry.CounterMetric heartbeats) {
+        return new WatchdogService(inbox, registry, heartbeats);
     }
 
     private int initializePort() {
