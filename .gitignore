@@ -50,3 +50,9 @@ logs/
 application-local.yml
 application-local.properties
 secrets/
+
+repomix-output.xml
+*CLAUDE*.md
+NOTA-*.md
+NEXT-STEPS.md
+*-context

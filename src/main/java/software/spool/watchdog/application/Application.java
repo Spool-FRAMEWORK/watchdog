@@ -3,6 +3,7 @@ package software.spool.watchdog.application;
 import software.spool.core.adapter.otel.OpenTelemetryMetricsRegistry;
 import software.spool.core.adapter.otel.OpenTelemetryModuleLogger;
 import software.spool.core.port.metrics.MetricsRegistry;
+import software.spool.core.port.metrics.SpoolMetrics;
 import software.spool.core.utils.polling.ThreadedPollingScheduler;
 import software.spool.watchdog.application.adapter.input.http.HTTPWatchdogServer;
 import software.spool.watchdog.application.adapter.output.InMemoryInbox;
