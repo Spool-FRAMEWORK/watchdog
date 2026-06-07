@@ -1,9 +1,0 @@
-name: Publish to Spool-FRAMEWORK Packages
-on:
-  push:
-    branches: [ develop ]
-  workflow_dispatch:
-jobs:
-  publish:
-    uses: Spool-FRAMEWORK/.github/.github/workflows/reusable-publish-snapshot.yml@main
-    secrets: inherit
