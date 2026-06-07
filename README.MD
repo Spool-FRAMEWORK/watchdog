@@ -92,9 +92,10 @@ All configuration is done via environment variables. No code changes required.
 | `WATCHDOG_PORT` | Port where the HTTP server listens. | `8090` |
 | `MODULE_TIMEOUT_SECONDS` | Seconds without a heartbeat before a module is marked `DEGRADED`. | `30` |
 | `ZOMBIE_TIMEOUT_SECONDS` | Seconds without a heartbeat before a module is removed permanently. | `300` |
-| `SERVICE_NAME` | OpenTelemetry identifier for this service. | `spool-watchdog` |
-| `OTEL_LOGS_ENDPOINT` | OTLP endpoint for log export. | `http://host.docker.internal:3100/otlp/v1/logs` |
-| `OTEL_TRACES_ENDPOINT` | OTLP endpoint for trace export. | `http://host.docker.internal:4318/v1/traces` |
+| `SERVICE_NAME` | OpenTelemetry service name shown in traces and metrics. | `spool-watchdog` |
+| `OTEL_TRACES_ENDPOINT` | OTLP HTTP endpoint for trace export. | `http://host.docker.internal:4318/v1/traces` |
+| `OTEL_LOGS_ENDPOINT` | OTLP HTTP endpoint for log export. | `http://host.docker.internal:3100/otlp/v1/logs` |
+| `OTEL_METRICS_ENDPOINT` | OTLP HTTP endpoint for metric export. | `http://host.docker.internal:4320/v1/metrics` |
 
 ---
 
@@ -148,13 +149,13 @@ GET /health
 
 ## Observability (OpenTelemetry)
 
-The Watchdog has native OpenTelemetry integration. Point `OTEL_TRACES_ENDPOINT` and `OTEL_LOGS_ENDPOINT` to your collector and it will automatically emit traces and logs for:
+The Watchdog has native OpenTelemetry integration and emits three signal types:
 
-- Module registrations and heartbeats.
-- Degradation events.
-- Zombie evictions.
+- **Metrics** — heartbeat rate, active modules, health ratio, timeouts, zombies, degradation duration. Sent to `OTEL_METRICS_ENDPOINT` (OTel Collector → Prometheus).
+- **Traces** — module lifecycle events. Sent to `OTEL_TRACES_ENDPOINT` (Tempo).
+- **Logs** — structured lifecycle log entries. Sent to `OTEL_LOGS_ENDPOINT` (Loki).
 
-If the OTEL endpoints are unreachable, the Watchdog continues working normally — telemetry is silently dropped.
+If any endpoint is unreachable, the Watchdog continues working normally — that signal is silently dropped.
 
 ---
 
