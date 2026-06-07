@@ -273,7 +273,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
-          "expr": "sum by (reason) (spool_janitor_records_cleaned_total{service_name=~\"$node\"})\nor vector(0)",
+          "expr": "sum by (reason) (spool_janitor_records_cleaned_total{service_name=~\"$node\"})",
           "legendFormat": "{{reason}}",
           "refId": "A"
         }
