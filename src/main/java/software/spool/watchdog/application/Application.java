@@ -3,7 +3,6 @@ package software.spool.watchdog.application;
 import software.spool.core.adapter.otel.OpenTelemetryMetricsRegistry;
 import software.spool.core.adapter.otel.OpenTelemetryModuleLogger;
 import software.spool.core.port.metrics.MetricsRegistry;
-import software.spool.core.port.metrics.SpoolMetrics;
 import software.spool.core.utils.polling.ThreadedPollingScheduler;
 import software.spool.watchdog.application.adapter.input.http.HTTPWatchdogServer;
 import software.spool.watchdog.application.adapter.output.InMemoryInbox;
@@ -32,16 +31,13 @@ public class Application {
     public Application() {
         MetricsRegistry metrics = new OpenTelemetryMetricsRegistry();
         MetricsRegistry.CounterMetric heartbeats = metrics.counter(SpoolMetrics.Watchdog.HEARTBEATS_TOTAL, SpoolMetrics.Watchdog.HEARTBEATS_TOTAL_DESC, "1");
-        MetricsRegistry.CounterMetric timeouts = metrics.counter(SpoolMetrics.Watchdog.TIMEOUTS_TOTAL, SpoolMetrics.Watchdog.TIMEOUTS_TOTAL_DESC, "1");
-        MetricsRegistry.CounterMetric zombies = metrics.counter(SpoolMetrics.Watchdog.ZOMBIES_TOTAL, SpoolMetrics.Watchdog.ZOMBIES_TOTAL_DESC, "1");
-        MetricsRegistry.TimerMetric checkTimer = metrics.timer(SpoolMetrics.Watchdog.CHECK_DURATION, SpoolMetrics.Watchdog.CHECK_DURATION_DESC, "s");
         this.inbox = initializeInbox();
         this.registry = initializeRegistry();
         this.port = initializePort();
         this.service = initializeService(heartbeats);
         this.server = initializeServer();
         this.emitter = initializeEmitter();
-        this.monitor = initializeMonitor(timeouts, zombies, checkTimer);
+        this.monitor = initializeMonitor(metrics);
         this.watchdog = initializeWatchdog();
     }
 
@@ -57,7 +53,7 @@ public class Application {
         return new OpenTelemetryModuleObserver(new OpenTelemetryModuleLogger());
     }
 
-    private WatchdogMonitor initializeMonitor(MetricsRegistry.CounterMetric timeouts, MetricsRegistry.CounterMetric zombies, MetricsRegistry.TimerMetric checkTimer) {
+    private WatchdogMonitor initializeMonitor(MetricsRegistry metrics) {
         long moduleTimeoutSec = Long.parseLong(System.getenv()
                 .getOrDefault("MODULE_TIMEOUT_SECONDS", "30"));
         long zombieTimeoutSec = Long.parseLong(System.getenv()
@@ -69,9 +65,7 @@ public class Application {
                 new ThreadedPollingScheduler(),
                 Duration.ofSeconds(moduleTimeoutSec),
                 Duration.ofSeconds(zombieTimeoutSec),
-                timeouts,
-                zombies,
-                checkTimer
+                metrics
         );
     }
 

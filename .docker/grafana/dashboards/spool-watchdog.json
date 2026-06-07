@@ -20,7 +20,7 @@
       {
         "current": {},
         "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
-        "definition": "label_values(spool_module_active, service_name)",
+        "definition": "label_values(spool_watchdog_heartbeats_total, service_name)",
         "hide": 0,
         "includeAll": true,
         "allValue": ".*",
@@ -30,7 +30,7 @@
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(spool_module_active, service_name)",
+          "query": "label_values(spool_watchdog_heartbeats_total, service_name)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
@@ -41,7 +41,7 @@
       {
         "current": {},
         "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
-        "definition": "label_values(spool_module_active{service_name=~\"$node\"}, module)",
+        "definition": "label_values(spool_watchdog_heartbeats_total{service_name=~\"$node\"}, module)",
         "hide": 0,
         "includeAll": true,
         "allValue": ".*",
@@ -51,7 +51,7 @@
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(spool_module_active{service_name=~\"$node\"}, module)",
+          "query": "label_values(spool_watchdog_heartbeats_total{service_name=~\"$node\"}, module)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
@@ -109,7 +109,50 @@
           "refId": "A"
         }
       ],
-      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 1 }
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 }
+    },
+
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "% Módulos saludables",
+      "description": "Porcentaje de módulos en estado HEALTHY sobre el total activo en el último ciclo.",
+      "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red",    "value": 0 },
+              { "color": "yellow", "value": 70 },
+              { "color": "green",  "value": 90 }
+            ]
+          },
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
+          "expr": "rate(spool_watchdog_healthy_ratio_sum{service_name=~\"$node\"}[1m]) / rate(spool_watchdog_healthy_ratio_count{service_name=~\"$node\"}[1m])",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 }
     },
 
     {
@@ -150,7 +193,7 @@
           "refId": "A"
         }
       ],
-      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 1 }
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 }
     },
 
     {
@@ -190,7 +233,7 @@
           "refId": "A"
         }
       ],
-      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 1 }
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 }
     },
 
     {
@@ -345,17 +388,49 @@
     },
 
     {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Duración media en DEGRADED por módulo",
+      "description": "Tiempo medio que cada módulo pasa en estado DEGRADED antes de recuperarse. Solo aparece cuando hay recuperaciones.",
+      "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 5, "showPoints": "auto" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table", "placement": "bottom", "showLegend": true,
+          "calcs": ["lastNotNull", "mean", "max"]
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
+          "expr": "rate(spool_watchdog_downtime_duration_sum{service_name=~\"$node\", module=~\"$module\"}[5m]) / rate(spool_watchdog_downtime_duration_count{service_name=~\"$node\", module=~\"$module\"}[5m])",
+          "legendFormat": "{{service_name}} / {{module}}",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 22 }
+    },
+
+    {
       "id": 10,
       "type": "row",
       "title": "Performance",
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 }
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 30 }
     },
 
     {
       "id": 11,
       "type": "timeseries",
-      "title": "Duración del check (p50 / p95)",
+      "title": "Duración del check (p50 / p95 / p99)",
       "description": "Tiempo que tarda cada ciclo de monitorización del watchdog.",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
@@ -385,9 +460,15 @@
           "expr": "histogram_quantile(0.95, sum by (le, service_name) (rate(spool_watchdog_check_duration_bucket{service_name=~\"$node\"}[1m])))",
           "legendFormat": "p95 — {{service_name}}",
           "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
+          "expr": "histogram_quantile(0.99, sum by (le, service_name) (rate(spool_watchdog_check_duration_bucket{service_name=~\"$node\"}[1m])))",
+          "legendFormat": "p99 — {{service_name}}",
+          "refId": "C"
         }
       ],
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 23 }
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 31 }
     }
 
   ]
