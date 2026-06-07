@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Java](https://img.shields.io/badge/Java-21%2B-orange.svg)](https://openjdk.org/)
-[![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](https://www.docker.com/)
+[![GHCR](https://img.shields.io/badge/GHCR-ghcr.io%2Fspool--framework%2Fwatchdog-2496ED.svg)](https://ghcr.io/spool-framework/watchdog)
 
 **Watchdog** is the **Spool** standalone monitoring service that **tracks heartbeats from active modules, detects degraded instances, and provides real-time health visibility** across the entire pipeline.
 
@@ -17,7 +17,6 @@
 - [Configuration](#configuration)
 - [HTTP API](#http-api)
 - [Observability (OpenTelemetry)](#observability-opentelemetry)
-- [Local Development](#local-development)
 - [License](#license)
 
 ---
@@ -42,15 +41,21 @@ GET /health ──► snapshot of all modules and their current status
 
 ## Quick Start
 
+The Docker image is published to GitHub Container Registry:
+
+```
+ghcr.io/spool-framework/watchdog:latest
+```
+
 ### Docker CLI
 
 ```bash
 docker run -d \
     --name spool-watchdog \
-    -p 8090:8080 \
+    -p 8090:8090 \
     -e MODULE_TIMEOUT_SECONDS=30 \
     -e ZOMBIE_TIMEOUT_SECONDS=300 \
-    spoolframework/spool-watchdog:latest
+    ghcr.io/spool-framework/watchdog:latest
 ```
 
 ### Docker Compose (Recommended)
@@ -58,16 +63,15 @@ docker run -d \
 ```yaml
 services:
     watchdog:
-        image: spoolframework/spool-watchdog:latest
+        image: ghcr.io/spool-framework/watchdog:latest
         container_name: spool-watchdog
         ports:
-          - "8090:8080"
+          - "8090:8090"
         environment:
-            - WATCHDOG_PORT=8080
             - MODULE_TIMEOUT_SECONDS=30
             - ZOMBIE_TIMEOUT_SECONDS=300
         healthcheck:
-            test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+            test: ["CMD", "wget", "-qO-", "http://localhost:8090/health"]
             interval: 30s
             timeout: 5s
             retries: 3
@@ -85,7 +89,7 @@ All configuration is done via environment variables. No code changes required.
 
 | Variable | Description | Default |
 |---|---|---|
-| `WATCHDOG_PORT` | Internal port where the HTTP server listens. | `8080` |
+| `WATCHDOG_PORT` | Port where the HTTP server listens. | `8090` |
 | `MODULE_TIMEOUT_SECONDS` | Seconds without a heartbeat before a module is marked `DEGRADED`. | `30` |
 | `ZOMBIE_TIMEOUT_SECONDS` | Seconds without a heartbeat before a module is removed permanently. | `300` |
 | `SERVICE_NAME` | OpenTelemetry identifier for this service. | `spool-watchdog` |
@@ -151,23 +155,6 @@ The Watchdog has native OpenTelemetry integration. Point `OTEL_TRACES_ENDPOINT` 
 - Zombie evictions.
 
 If the OTEL endpoints are unreachable, the Watchdog continues working normally — telemetry is silently dropped.
-
----
-
-## Local Development
-
-Build and run without Docker:
-
-```bash
-# Build
-mvn clean package -DskipTests
-
-# Run
-java -jar target/watchdog.jar
-
-# Build a local Docker image
-docker build -t watchdog-local .
-```
 
 ---
 
