@@ -24,7 +24,7 @@
         "hide": 0,
         "includeAll": true,
         "allValue": ".*",
-        "label": "Nodo",
+        "label": "Node",
         "multi": true,
         "name": "node",
         "options": [],
@@ -45,7 +45,7 @@
         "hide": 0,
         "includeAll": true,
         "allValue": ".*",
-        "label": "Módulo",
+        "label": "Module",
         "multi": true,
         "name": "module",
         "options": [],
@@ -67,7 +67,7 @@
     {
       "id": 1,
       "type": "row",
-      "title": "Módulos",
+      "title": "Modules",
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
     },
@@ -75,8 +75,8 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "Módulos activos",
-      "description": "Número de módulos actualmente en ejecución.",
+      "title": "Active modules",
+      "description": "Number of modules currently tracked in the watchdog registry.",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -104,7 +104,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
-          "expr": "sum(spool_module_active{service_name=~\"$node\", module=~\"$module\"})\nor vector(0)",
+          "expr": "rate(spool_watchdog_modules_active_sum{service_name=~\"$node\"}[20s]) / rate(spool_watchdog_modules_active_count{service_name=~\"$node\"}[20s])",
           "legendFormat": "",
           "refId": "A"
         }
@@ -115,8 +115,8 @@
     {
       "id": 12,
       "type": "stat",
-      "title": "% Módulos saludables",
-      "description": "Porcentaje de módulos en estado HEALTHY sobre el total activo en el último ciclo.",
+      "title": "% Healthy modules",
+      "description": "Percentage of modules in HEALTHY state out of all tracked modules in the last check cycle.",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -147,7 +147,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
-          "expr": "rate(spool_watchdog_healthy_ratio_sum{service_name=~\"$node\"}[1m]) / rate(spool_watchdog_healthy_ratio_count{service_name=~\"$node\"}[1m])",
+          "expr": "rate(spool_watchdog_healthy_ratio_sum{service_name=~\"$node\"}[20s]) / rate(spool_watchdog_healthy_ratio_count{service_name=~\"$node\"}[20s])",
           "legendFormat": "",
           "refId": "A"
         }
@@ -158,8 +158,8 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "Timeouts detectados",
-      "description": "Módulos que han superado el timeout de heartbeat desde el arranque.",
+      "title": "Timeouts detected",
+      "description": "Total heartbeat timeouts since process startup (cumulative counter).",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -199,8 +199,8 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "Zombies eliminados",
-      "description": "Módulos sin actividad durante el periodo zombie y retirados del registro.",
+      "title": "Zombies evicted",
+      "description": "Total modules removed from the registry for prolonged inactivity since process startup (cumulative counter).",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -239,8 +239,8 @@
     {
       "id": 5,
       "type": "timeseries",
-      "title": "Heartbeats recibidos / s",
-      "description": "Ritmo de heartbeats por módulo. Un módulo que no aparece aquí puede estar degradado.",
+      "title": "Heartbeats received / s",
+      "description": "Heartbeat rate per module. A module absent from this graph may be degraded.",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -271,8 +271,8 @@
     {
       "id": 6,
       "type": "timeseries",
-      "title": "Arranques y paradas de módulos",
-      "description": "Eventos de ciclo de vida detectados por el watchdog.",
+      "title": "Module starts and stops",
+      "description": "Module lifecycle events detected by the watchdog.",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -292,13 +292,13 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
-          "expr": "sum by (service_name, module) (rate(spool_module_started_total{service_name=~\"$node\", module=~\"$module\"}[1m]))",
+          "expr": "sum by (service_name, module) (rate(spool_watchdog_module_started_total{service_name=~\"$node\", module=~\"$module\"}[1m]))",
           "legendFormat": "started — {{service_name}} / {{module}}",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
-          "expr": "sum by (service_name, module) (rate(spool_module_stopped_total{service_name=~\"$node\", module=~\"$module\"}[1m]))",
+          "expr": "sum by (service_name, module) (rate(spool_watchdog_module_stopped_total{service_name=~\"$node\", module=~\"$module\"}[1m]))",
           "legendFormat": "stopped — {{service_name}} / {{module}}",
           "refId": "B"
         }
@@ -309,7 +309,7 @@
     {
       "id": 7,
       "type": "row",
-      "title": "Degradaciones",
+      "title": "Degradations",
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 }
     },
@@ -317,8 +317,8 @@
     {
       "id": 8,
       "type": "timeseries",
-      "title": "Degradaciones detectadas / s",
-      "description": "Módulos que entran en estado DEGRADED por superar el timeout de heartbeat.",
+      "title": "Degradations detected / s",
+      "description": "Rate of modules entering DEGRADED state due to heartbeat timeout, broken down by module.",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -338,7 +338,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
-          "expr": "sum by (service_name, module) (rate(spool_module_degraded_total{service_name=~\"$node\", module=~\"$module\"}[1m]))",
+          "expr": "sum by (service_name, module) (rate(spool_watchdog_module_degraded_total{service_name=~\"$node\", module=~\"$module\"}[1m]))",
           "legendFormat": "{{service_name}} / {{module}}",
           "refId": "A"
         }
@@ -349,8 +349,8 @@
     {
       "id": 9,
       "type": "stat",
-      "title": "Degradaciones (total acumulado)",
-      "description": "Total de eventos DEGRADED desde el arranque.",
+      "title": "Degradations (total since startup)",
+      "description": "Total DEGRADED events since process startup (cumulative counter).",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -379,7 +379,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
-          "expr": "sum(spool_module_degraded_total{service_name=~\"$node\", module=~\"$module\"})\nor vector(0)",
+          "expr": "sum(spool_watchdog_module_degraded_total{service_name=~\"$node\"})\nor vector(0)",
           "legendFormat": "",
           "refId": "A"
         }
@@ -390,8 +390,8 @@
     {
       "id": 13,
       "type": "timeseries",
-      "title": "Duración media en DEGRADED por módulo",
-      "description": "Tiempo medio que cada módulo pasa en estado DEGRADED antes de recuperarse. Solo aparece cuando hay recuperaciones.",
+      "title": "DEGRADED duration per module (mean & p95)",
+      "description": "Time each module spent in DEGRADED state before recovering, within the selected time range.",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -405,15 +405,21 @@
         "tooltip": { "mode": "multi", "sort": "desc" },
         "legend": {
           "displayMode": "table", "placement": "bottom", "showLegend": true,
-          "calcs": ["lastNotNull", "mean", "max"]
+          "calcs": ["lastNotNull", "max"]
         }
       },
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
-          "expr": "rate(spool_watchdog_downtime_duration_sum{service_name=~\"$node\", module=~\"$module\"}[5m]) / rate(spool_watchdog_downtime_duration_count{service_name=~\"$node\", module=~\"$module\"}[5m])",
-          "legendFormat": "{{service_name}} / {{module}}",
+          "expr": "increase(spool_watchdog_module_downtime_sum{service_name=~\"$node\", module=~\"$module\"}[$__range]) / increase(spool_watchdog_module_downtime_count{service_name=~\"$node\", module=~\"$module\"}[$__range])",
+          "legendFormat": "mean — {{module}}",
           "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
+          "expr": "histogram_quantile(0.95, sum by (le, module) (increase(spool_watchdog_module_downtime_bucket{service_name=~\"$node\", module=~\"$module\"}[$__range])))",
+          "legendFormat": "p95 — {{module}}",
+          "refId": "B"
         }
       ],
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 22 }
@@ -430,8 +436,8 @@
     {
       "id": 11,
       "type": "timeseries",
-      "title": "Duración del check (p50 / p95 / p99)",
-      "description": "Tiempo que tarda cada ciclo de monitorización del watchdog.",
+      "title": "Check duration (p50 / p95 / p99)",
+      "description": "Duration of each watchdog monitoring check cycle.",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {

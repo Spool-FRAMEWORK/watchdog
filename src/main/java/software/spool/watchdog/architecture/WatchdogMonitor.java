@@ -46,7 +46,7 @@ public class WatchdogMonitor {
     private final MetricsRegistry.CounterMetric moduleStarted;
     private final MetricsRegistry.CounterMetric moduleStopped;
     private final MetricsRegistry.CounterMetric moduleDegraded;
-    private final MetricsRegistry.GaugeMetric modulesActive;
+    private final MetricsRegistry.LongHistogramMetric modulesActive;
     private final MetricsRegistry.TimerMetric downtimeDuration;
     private final MetricsRegistry.LongHistogramMetric healthyRatio;
 
@@ -61,10 +61,10 @@ public class WatchdogMonitor {
         this.timeouts = metrics.counter(SpoolMetrics.Watchdog.TIMEOUTS_TOTAL, SpoolMetrics.Watchdog.TIMEOUTS_TOTAL_DESC, "1");
         this.zombies = metrics.counter(SpoolMetrics.Watchdog.ZOMBIES_TOTAL, SpoolMetrics.Watchdog.ZOMBIES_TOTAL_DESC, "1");
         this.checkTimer = metrics.timer(SpoolMetrics.Watchdog.CHECK_DURATION, SpoolMetrics.Watchdog.CHECK_DURATION_DESC, "ms");
-        this.moduleStarted = metrics.counter(SpoolMetrics.Module.STARTED_TOTAL, SpoolMetrics.Module.STARTED_TOTAL_DESC, "1");
-        this.moduleStopped = metrics.counter(SpoolMetrics.Module.STOPPED_TOTAL, SpoolMetrics.Module.STOPPED_TOTAL_DESC, "1");
-        this.moduleDegraded = metrics.counter(SpoolMetrics.Module.DEGRADED_TOTAL, SpoolMetrics.Module.DEGRADED_TOTAL_DESC, "1");
-        this.modulesActive = metrics.gauge(SpoolMetrics.Module.ACTIVE, SpoolMetrics.Module.ACTIVE_DESC, "1");
+        this.moduleStarted = metrics.counter(SpoolMetrics.Watchdog.MODULE_STARTED_TOTAL, SpoolMetrics.Watchdog.MODULE_STARTED_TOTAL_DESC, "1");
+        this.moduleStopped = metrics.counter(SpoolMetrics.Watchdog.MODULE_STOPPED_TOTAL, SpoolMetrics.Watchdog.MODULE_STOPPED_TOTAL_DESC, "1");
+        this.moduleDegraded = metrics.counter(SpoolMetrics.Watchdog.MODULE_DEGRADED_TOTAL, SpoolMetrics.Watchdog.MODULE_DEGRADED_TOTAL_DESC, "1");
+        this.modulesActive = metrics.histogram(SpoolMetrics.Watchdog.MODULES_ACTIVE, SpoolMetrics.Watchdog.MODULES_ACTIVE_DESC, "1");
         this.downtimeDuration = metrics.timer(SpoolMetrics.Watchdog.DOWNTIME_DURATION, SpoolMetrics.Watchdog.DOWNTIME_DURATION_DESC, "ms");
         this.healthyRatio = metrics.histogram(SpoolMetrics.Watchdog.HEALTHY_RATIO, SpoolMetrics.Watchdog.HEALTHY_RATIO_DESC, "1");
     }
@@ -92,7 +92,6 @@ public class WatchdogMonitor {
                             registry.save(ModuleState.of(reported.identity()));
                             moduleObserver.onModuleStarted(reported.identity());
                             moduleStarted.increment(Map.of(SpoolMetrics.Attributes.MODULE, reported.identity().toString()));
-                            modulesActive.increment(Map.of(SpoolMetrics.Attributes.MODULE, reported.identity().toString()));
                         }
                 );
             });
@@ -121,6 +120,7 @@ public class WatchdogMonitor {
                 }
             });
             if (counts[1] > 0) {
+                modulesActive.record(counts[1], Map.of());
                 healthyRatio.record(counts[0] * 100 / counts[1], Map.of());
             }
         } catch (Exception e) {
@@ -143,7 +143,6 @@ public class WatchdogMonitor {
                     moduleObserver.onModuleFinished(m, "Zombie detected");
                     zombies.increment(Map.of(SpoolMetrics.Attributes.MODULE, m.toString()));
                     moduleStopped.increment(Map.of(SpoolMetrics.Attributes.MODULE, m.toString()));
-                    modulesActive.decrement(Map.of(SpoolMetrics.Attributes.MODULE, m.toString()));
                 });
     }
 }

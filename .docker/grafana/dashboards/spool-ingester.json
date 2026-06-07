@@ -24,7 +24,7 @@
         "hide": 0,
         "includeAll": true,
         "allValue": ".*",
-        "label": "Nodo",
+        "label": "Node",
         "multi": true,
         "name": "node",
         "options": [],
@@ -54,7 +54,7 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "Registros ingestados",
+      "title": "Records ingested",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -92,7 +92,7 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "Registros rechazados",
+      "title": "Records rejected",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -131,7 +131,7 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "Tasa de rechazo (%)",
+      "title": "Rejection rate (%)",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -173,7 +173,7 @@
     {
       "id": 5,
       "type": "timeseries",
-      "title": "Registros ingestados / s",
+      "title": "Records ingested / s",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -204,8 +204,8 @@
     {
       "id": 6,
       "type": "timeseries",
-      "title": "Registros rechazados / s",
-      "description": "Ritmo de rechazos por motivo: invalid (validación) y quarantine (cuarentena).",
+      "title": "Records rejected / s",
+      "description": "Rejection rate by reason: invalid (validation) and quarantine.",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -236,7 +236,7 @@
     {
       "id": 7,
       "type": "row",
-      "title": "Latencia",
+      "title": "Latency",
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 }
     },
@@ -244,8 +244,8 @@
     {
       "id": 8,
       "type": "timeseries",
-      "title": "Duración de procesamiento (p50 / p95 / p99)",
-      "description": "Tiempo desde recepción del evento hasta finalización del pipeline por batch.",
+      "title": "Processing duration (p50 / p95 / p99)",
+      "description": "Time from event reception to end of the processing pipeline per batch.",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {

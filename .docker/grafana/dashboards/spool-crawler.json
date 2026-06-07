@@ -24,7 +24,7 @@
         "hide": 0,
         "includeAll": true,
         "allValue": ".*",
-        "label": "Nodo",
+        "label": "Node",
         "multi": true,
         "name": "node",
         "options": [],
@@ -75,7 +75,7 @@
     {
       "id": 2,
       "type": "timeseries",
-      "title": "Eventos capturados / s",
+      "title": "Events captured / s",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -106,8 +106,8 @@
     {
       "id": 3,
       "type": "timeseries",
-      "title": "Errores (total acumulado)",
-      "description": "Contador acumulado de errores desde el arranque. Sube cuando ocurren errores, se queda plano cuando no.",
+      "title": "Errors (total since startup)",
+      "description": "Cumulative error counter since process startup. Rises when errors occur, flat otherwise.",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -139,7 +139,7 @@
     {
       "id": 4,
       "type": "row",
-      "title": "Latencia",
+      "title": "Latency",
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 }
     },
@@ -147,8 +147,8 @@
     {
       "id": 5,
       "type": "timeseries",
-      "title": "Latencia end-to-end (p50 / p95 / p99)",
-      "description": "Tiempo desde detección del payload hasta entrega al ingester. Valores en segundos; Grafana formatea automáticamente como ms.",
+      "title": "End-to-end latency (p50 / p95 / p99)",
+      "description": "Time from payload detection to ingester delivery, in seconds.",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -199,8 +199,8 @@
     {
       "id": 7,
       "type": "timeseries",
-      "title": "Tamaño de payload p90",
-      "description": "Tamaño en bytes de los payloads capturados (percentil 90).",
+      "title": "Payload size p90",
+      "description": "Size in bytes of captured payloads at the 90th percentile.",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -231,8 +231,8 @@
     {
       "id": 8,
       "type": "stat",
-      "title": "Tasa de error (%)",
-      "description": "Porcentaje de eventos que terminaron en error en la ventana temporal seleccionada.",
+      "title": "Error rate (%)",
+      "description": "Percentage of events that ended in error within the selected time window.",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
@@ -274,8 +274,8 @@
     {
       "id": 13,
       "type": "stat",
-      "title": "Eventos totales",
-      "description": "Total acumulado de eventos procesados correctamente desde el arranque.",
+      "title": "Total events",
+      "description": "Cumulative total of successfully processed events since process startup.",
       "datasource": { "type": "prometheus", "uid": "spool-prometheus" },
       "fieldConfig": {
         "defaults": {
