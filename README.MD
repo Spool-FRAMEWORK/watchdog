@@ -1,6 +1,6 @@
 # Spool — Watchdog
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+[![License](https://img.shields.io/badge/License-AGPL%203.0-blue.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-21%2B-orange.svg)](https://openjdk.org/)
 [![GHCR](https://img.shields.io/badge/GHCR-ghcr.io%2Fspool--framework%2Fwatchdog-2496ED.svg)](https://ghcr.io/spool-framework/watchdog)
 
@@ -161,4 +161,4 @@ If any endpoint is unreachable, the Watchdog continues working normally — that
 
 ## License
 
-Distributed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+Distributed under the [GNU Affero General Public License v3.0](LICENSE).
