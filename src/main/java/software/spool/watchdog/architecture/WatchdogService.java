@@ -1,5 +1,7 @@
 package software.spool.watchdog.architecture;
 
+import java.util.List;
+import software.spool.core.port.health.PieceHealth;
 import software.spool.core.model.watchdog.ModuleIdentity;
 import software.spool.core.model.watchdog.ModuleState;
 import software.spool.core.model.watchdog.ModuleStatus;
@@ -32,9 +34,9 @@ public class WatchdogService implements Heartbeat, QueryHealth {
     }
 
     @Override
-    public void beat(ModuleIdentity identity, ModuleStatus status) {
+    public void beat(ModuleIdentity identity, ModuleStatus status, List<PieceHealth> pieces) {
         heartbeats.increment(Map.of(SpoolMetrics.Attributes.MODULE, identity.toString()));
-        inbox.write(ModuleState.of(identity).status(status));
+        inbox.write(ModuleState.of(identity).status(status).pieces(pieces));
     }
 
     @Override

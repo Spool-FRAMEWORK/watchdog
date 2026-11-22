@@ -1,5 +1,6 @@
 package software.spool.watchdog.application.adapter.input.http;
 
+import software.spool.core.adapter.jackson.PayloadDeserializerFactory;
 import io.javalin.Javalin;
 import io.javalin.plugin.bundled.CorsPluginConfig;
 import software.spool.core.adapter.jackson.RecordSerializerFactory;
@@ -21,8 +22,8 @@ public class HTTPWatchdogServer implements WatchdogServer {
 
         app.post("/heartbeat", ctx -> {
             try {
-                HeartbeatPayload payload = ctx.bodyAsClass(HeartbeatPayload.class);
-                service.beat(payload.identity(), payload.status());
+                HeartbeatPayload payload = PayloadDeserializerFactory.json().as(HeartbeatPayload.class).deserialize(ctx.bodyAsBytes());
+                service.beat(payload.identity(), payload.status(), payload.pieces());
                 ctx.status(204);
             } catch (Exception e) {
                 ctx.status(500).result("Error processing heartbeat: "+ e.getMessage());

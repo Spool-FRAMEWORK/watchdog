@@ -1,5 +1,7 @@
 package software.spool.watchdog.architecture.port.input;
 
+import java.util.List;
+import software.spool.core.port.health.PieceHealth;
 import software.spool.core.model.watchdog.ModuleIdentity;
 import software.spool.core.model.watchdog.ModuleStatus;
 
@@ -15,6 +17,7 @@ public interface Heartbeat {
      *
      * @param identity the unique identity of the reporting module
      * @param status   the current operational status of the module
+     * @param pieces   how each piece of infrastructure the module uses is doing
      */
-    void beat(ModuleIdentity identity, ModuleStatus status);
+    void beat(ModuleIdentity identity, ModuleStatus status, List<PieceHealth> pieces);
 }

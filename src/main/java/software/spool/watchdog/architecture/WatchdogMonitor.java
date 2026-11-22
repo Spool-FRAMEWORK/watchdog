@@ -81,15 +81,21 @@ public class WatchdogMonitor {
         token = CancellationToken.NOOP;
     }
 
+    /** A beat from a known module: what it reported, unless it is down for silence, which only the timeout ends. */
+    private ModuleState seen(ModuleState existing, ModuleState reported) {
+        ModuleState seen = existing.seenNow().pieces(reported.pieces());
+        return downSince.containsKey(existing.identity()) ? seen : seen.status(reported.status());
+    }
+
     private void check() {
         long start = System.nanoTime();
         try {
             inbox.read().forEach(reported -> {
                 lastReported.put(reported.identity(), reported.status());
                 registry.find(reported.identity()).ifPresentOrElse(
-                        existing -> registry.update(existing.seenNow()),
+                        existing -> registry.update(seen(existing, reported)),
                         () -> {
-                            registry.save(ModuleState.of(reported.identity()));
+                            registry.save(ModuleState.of(reported.identity()).status(reported.status()).pieces(reported.pieces()));
                             moduleObserver.onModuleStarted(reported.identity());
                             moduleStarted.increment(Map.of(SpoolMetrics.Attributes.MODULE, reported.identity().toString()));
                         }
@@ -102,15 +108,15 @@ public class WatchdogMonitor {
                 counts[1]++;
                 Duration silence = Duration.between(module.lastSeen(), now);
                 boolean timedOut   = silence.compareTo(moduleTimeout) > 0;
-                boolean isDegraded = module.status() == ModuleStatus.DEGRADED;
+                boolean isDown = downSince.containsKey(module.identity());
                 if (module.status() == ModuleStatus.HEALTHY) counts[0]++;
-                if (timedOut && !isDegraded) {
+                if (timedOut && !isDown) {
                     registry.update(module.status(ModuleStatus.DEGRADED));
                     downSince.put(module.identity(), now);
                     moduleObserver.onModuleDegraded(module.identity(), "Module degraded due to timeout");
                     timeouts.increment(Map.of(SpoolMetrics.Attributes.MODULE, module.identity().toString()));
                     moduleDegraded.increment(Map.of(SpoolMetrics.Attributes.MODULE, module.identity().toString()));
-                } else if (!timedOut && isDegraded) {
+                } else if (!timedOut && isDown) {
                     Instant wentDown = downSince.remove(module.identity());
                     Duration downtime = wentDown != null ? Duration.between(wentDown, now) : Duration.ZERO;
                     ModuleStatus recoveredAs = lastReported.getOrDefault(module.identity(), ModuleStatus.HEALTHY);
