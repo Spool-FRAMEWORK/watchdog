@@ -1,12 +1,12 @@
 package software.spool.watchdog.architecture;
 
+import software.spool.core.model.schedule.Schedule;
 import software.spool.core.model.watchdog.ModuleIdentity;
 import software.spool.core.model.watchdog.ModuleState;
 import software.spool.core.model.watchdog.ModuleStatus;
 import software.spool.core.port.metrics.MetricsRegistry;
 import software.spool.core.port.metrics.SpoolMetrics;
 import software.spool.core.utils.polling.CancellationToken;
-import software.spool.core.utils.polling.PollingPolicy;
 import software.spool.core.utils.polling.PollingScheduler;
 import software.spool.watchdog.architecture.port.output.Inbox;
 import software.spool.watchdog.architecture.port.output.ModuleObserver;
@@ -72,7 +72,7 @@ public class WatchdogMonitor {
     public void start() {
         if (token.isActive()) return;
         token = CancellationToken.create();
-        statusScheduler.schedule(this::check, PollingPolicy.every(Duration.ofSeconds(1)), token);
+        statusScheduler.schedule(this::check, Schedule.every(Duration.ofSeconds(1)), token);
     }
 
     public void stop() {
