@@ -9,17 +9,24 @@ import software.spool.watchdog.application.adapter.input.http.HTTPWatchdogServer
 import software.spool.watchdog.application.adapter.output.InMemoryInbox;
 import software.spool.watchdog.application.adapter.output.InMemoryModuleRegistry;
 import software.spool.watchdog.application.adapter.output.OpenTelemetryModuleObserver;
+import software.spool.watchdog.application.adapter.output.WebhookModuleObserver;
 import software.spool.watchdog.architecture.Watchdog;
 import software.spool.watchdog.architecture.WatchdogMonitor;
 import software.spool.watchdog.architecture.WatchdogService;
 import software.spool.watchdog.architecture.port.output.Inbox;
 import software.spool.watchdog.architecture.port.output.ModuleObserver;
+import software.spool.watchdog.architecture.port.output.ModuleObservers;
 import software.spool.watchdog.architecture.port.output.ModuleRegistry;
 import software.spool.watchdog.architecture.port.output.WatchdogServer;
 
+import java.net.URI;
 import java.time.Duration;
+import java.util.Map;
+import java.util.Optional;
 
 public class Application {
+    static final String ALERT_WEBHOOK_URL = "WATCHDOG_ALERT_WEBHOOK_URL";
+
     private final Inbox inbox;
     private final ModuleRegistry registry;
     private final WatchdogService service;
@@ -28,8 +35,11 @@ public class Application {
     private final ModuleObserver emitter;
     private final WatchdogMonitor monitor;
     private final Watchdog watchdog;
+    private final Map<String, String> environment;
 
-    public Application() {
+    /** A watchdog configured by the given environment variables, such as {@code WATCHDOG_PORT}. */
+    public Application(Map<String, String> environment) {
+        this.environment = Map.copyOf(environment);
         MetricsRegistry metrics = new OpenTelemetryMetricsRegistry();
         MetricsRegistry.CounterMetric heartbeats = metrics.counter(SpoolMetrics.Watchdog.HEARTBEATS_TOTAL, SpoolMetrics.Watchdog.HEARTBEATS_TOTAL_DESC, "1");
         this.inbox = initializeInbox();
@@ -51,14 +61,16 @@ public class Application {
     }
 
     private ModuleObserver initializeEmitter() {
-        return new OpenTelemetryModuleObserver(new OpenTelemetryModuleLogger());
+        ModuleObserver log = new OpenTelemetryModuleObserver(new OpenTelemetryModuleLogger());
+        return Optional.ofNullable(environment.get(ALERT_WEBHOOK_URL))
+                .filter(url -> !url.isBlank())
+                .<ModuleObserver>map(url -> ModuleObservers.of(log, new WebhookModuleObserver(URI.create(url))))
+                .orElse(log);
     }
 
     private WatchdogMonitor initializeMonitor(MetricsRegistry metrics) {
-        long moduleTimeoutSec = Long.parseLong(System.getenv()
-                .getOrDefault("MODULE_TIMEOUT_SECONDS", "30"));
-        long zombieTimeoutSec = Long.parseLong(System.getenv()
-                .getOrDefault("ZOMBIE_TIMEOUT_SECONDS", "300"));
+        long moduleTimeoutSec = Long.parseLong(environment.getOrDefault("MODULE_TIMEOUT_SECONDS", "30"));
+        long zombieTimeoutSec = Long.parseLong(environment.getOrDefault("ZOMBIE_TIMEOUT_SECONDS", "300"));
         return new WatchdogMonitor(
                 registry,
                 inbox,
@@ -79,7 +91,7 @@ public class Application {
     }
 
     private int initializePort() {
-        return Integer.parseInt(System.getenv().getOrDefault("WATCHDOG_PORT", "8090"));
+        return Integer.parseInt(environment.getOrDefault("WATCHDOG_PORT", "8090"));
     }
 
     private ModuleRegistry initializeRegistry() {
