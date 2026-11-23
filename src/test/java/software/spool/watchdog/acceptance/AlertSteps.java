@@ -220,10 +220,7 @@ public class AlertSteps {
         HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/health")).GET().build();
         String body = client.send(request, HttpResponse.BodyHandlers.ofString()).body();
         lastHealth = body;
-        String json = body.startsWith("\"")
-                ? PayloadDeserializerFactory.json().as(String.class).deserialize(body.getBytes(StandardCharsets.UTF_8))
-                : body;
-        return PayloadDeserializerFactory.json().as(List.class).deserialize(json.getBytes(StandardCharsets.UTF_8));
+        return PayloadDeserializerFactory.json().as(List.class).deserialize(body.getBytes(StandardCharsets.UTF_8));
     }
 
     private static void sleep() {
