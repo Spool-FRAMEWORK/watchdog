@@ -1,10 +1,12 @@
 package software.spool.watchdog.architecture;
 
+import software.spool.core.adapter.logging.LoggerFactory;
 import software.spool.core.model.schedule.Schedule;
 import software.spool.core.model.watchdog.ModuleIdentity;
 import software.spool.core.model.watchdog.ModuleState;
 import software.spool.core.model.watchdog.ModuleStatus;
 import software.spool.core.port.metrics.MetricsRegistry;
+import software.spool.core.port.logging.Logger;
 import software.spool.core.port.metrics.SpoolMetrics;
 import software.spool.core.utils.polling.CancellationToken;
 import software.spool.core.utils.polling.PollingScheduler;
@@ -31,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * ({@code MODULE_TIMEOUT_SECONDS}, {@code ZOMBIE_TIMEOUT_SECONDS}).
  */
 public class WatchdogMonitor {
+    private static final Logger LOG = LoggerFactory.getLogger(WatchdogMonitor.class);
     private final ModuleRegistry registry;
     private final Inbox inbox;
     private final ModuleObserver moduleObserver;
@@ -91,7 +94,11 @@ public class WatchdogMonitor {
         long start = System.nanoTime();
         try {
             inbox.read().forEach(reported -> {
+                ModuleStatus before = lastReported.getOrDefault(reported.identity(), ModuleStatus.HEALTHY);
                 lastReported.put(reported.identity(), reported.status());
+                if (reported.status() != before) {
+                    moduleObserver.onModuleStatusChanged(reported.identity(), before, reported.status(), reported.pieces());
+                }
                 registry.find(reported.identity()).ifPresentOrElse(
                         existing -> registry.update(seen(existing, reported)),
                         () -> {
@@ -130,7 +137,7 @@ public class WatchdogMonitor {
                 healthyRatio.record(counts[0] * 100 / counts[1], Map.of());
             }
         } catch (Exception e) {
-            System.err.println("Error during watchdog check: " + e);
+            LOG.error("The watchdog check failed: {}", e.getMessage());
         } finally {
             checkTimer.record((System.nanoTime() - start) / 1_000_000, Map.of());
         }

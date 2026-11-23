@@ -1,8 +1,11 @@
 package software.spool.watchdog.architecture.port.output;
 
 import software.spool.core.model.watchdog.ModuleIdentity;
+import software.spool.core.model.watchdog.ModuleStatus;
+import software.spool.core.port.health.PieceHealth;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Output port for reacting to module lifecycle events detected by the monitor.
@@ -26,4 +29,11 @@ public interface ModuleObserver {
 
     /** Called when a module is evicted from the registry after exceeding the zombie timeout. */
     void onModuleFinished(ModuleIdentity identity, String reason);
+
+    /**
+     * Called when a module reports a status other than the one it reported before; a new module counts as healthy
+     * before its first report. The pieces are the ones it reported with the new status.
+     */
+    default void onModuleStatusChanged(ModuleIdentity identity, ModuleStatus from, ModuleStatus to, List<PieceHealth> pieces) {
+    }
 }

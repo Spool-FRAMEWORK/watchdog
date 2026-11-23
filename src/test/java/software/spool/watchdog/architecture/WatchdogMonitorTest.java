@@ -116,6 +116,67 @@ class WatchdogMonitorTest {
         assertThat(registry.find(identity)).hasValueSatisfying(state -> assertThat(state.status()).isEqualTo(ModuleStatus.DEGRADED));
     }
 
+    @Test
+    void check_moduleThatReportsADifferentStatus_notifiesTheChangeWithItsPieces() {
+        InMemoryModuleRegistry registry = new InMemoryModuleRegistry();
+        InMemoryInbox inbox = new InMemoryInbox();
+        ModuleIdentity identity = ModuleIdentity.of("module-4");
+        List<String> changes = new ArrayList<>();
+        WatchdogMonitor monitor = monitorOf(registry, inbox, recordingChanges(changes));
+
+        inbox.write(ModuleState.of(identity));
+        checkOnce(monitor);
+        inbox.write(ModuleState.of(identity).status(ModuleStatus.UNHEALTHY).pieces(List.of(LAKE_DOWN)));
+        checkOnce(monitor);
+
+        assertThat(changes).containsExactly("module-4 HEALTHY->UNHEALTHY [lake]");
+    }
+
+    @Test
+    void check_moduleThatReportsTheSameStatusAgain_notifiesItOnce() {
+        InMemoryModuleRegistry registry = new InMemoryModuleRegistry();
+        InMemoryInbox inbox = new InMemoryInbox();
+        ModuleIdentity identity = ModuleIdentity.of("module-5");
+        List<String> changes = new ArrayList<>();
+        WatchdogMonitor monitor = monitorOf(registry, inbox, recordingChanges(changes));
+
+        inbox.write(ModuleState.of(identity).status(ModuleStatus.UNHEALTHY).pieces(List.of(LAKE_DOWN)));
+        checkOnce(monitor);
+        inbox.write(ModuleState.of(identity).status(ModuleStatus.UNHEALTHY).pieces(List.of(LAKE_DOWN)));
+        checkOnce(monitor);
+
+        assertThat(changes).containsExactly("module-5 HEALTHY->UNHEALTHY [lake]");
+    }
+
+    @Test
+    void check_newModuleThatReportsItIsHealthy_notifiesNoChange() {
+        InMemoryModuleRegistry registry = new InMemoryModuleRegistry();
+        InMemoryInbox inbox = new InMemoryInbox();
+        List<String> changes = new ArrayList<>();
+
+        inbox.write(ModuleState.of(ModuleIdentity.of("module-6")));
+        checkOnce(monitorOf(registry, inbox, recordingChanges(changes)));
+
+        assertThat(changes).isEmpty();
+    }
+
+    private static void checkOnce(WatchdogMonitor monitor) {
+        monitor.stop();
+        monitor.start();
+    }
+
+    private static ModuleObserver recordingChanges(List<String> changes) {
+        return new ModuleObserver() {
+            @Override public void onModuleStarted(ModuleIdentity id) {}
+            @Override public void onModuleDegraded(ModuleIdentity id, String r) {}
+            @Override public void onModuleRecovered(ModuleIdentity id, Duration d) {}
+            @Override public void onModuleFinished(ModuleIdentity id, String r) {}
+            @Override public void onModuleStatusChanged(ModuleIdentity id, ModuleStatus from, ModuleStatus to, List<PieceHealth> pieces) {
+                changes.add(id.moduleId() + " " + from + "->" + to + " " + pieces.stream().map(PieceHealth::piece).toList());
+            }
+        };
+    }
+
     private static WatchdogMonitor monitorOf(InMemoryModuleRegistry registry, InMemoryInbox inbox, ModuleObserver observer) {
         return new WatchdogMonitor(registry, inbox, observer, (task, policy, token) -> task.run(),
                 Duration.ofSeconds(30), Duration.ofMinutes(5), MetricsRegistry.NOOP);
