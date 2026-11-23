@@ -15,6 +15,7 @@
 - [What it does](#what-it-does)
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
+- [Alerts](#alerts)
 - [HTTP API](#http-api)
 - [Observability (OpenTelemetry)](#observability-opentelemetry)
 - [License](#license)
@@ -36,6 +37,7 @@ GET /health ──► snapshot of all modules and their current status
 2. **Monitoring** — Each subsequent heartbeat resets the module's last-seen timestamp.
 3. **Degradation** — If a module goes silent past `MODULE_TIMEOUT_SECONDS`, it is marked `DEGRADED`.
 4. **Zombie cleanup** — If silence persists past `ZOMBIE_TIMEOUT_SECONDS`, the module is removed entirely.
+5. **Alerts** — Each of these changes, and every change in the status a module reports, is written to the log and, when `WATCHDOG_ALERT_WEBHOOK_URL` is set, sent to a webhook (see [Alerts](#alerts)).
 
 ---
 
@@ -92,10 +94,49 @@ All configuration is done via environment variables. No code changes required.
 | `WATCHDOG_PORT` | Port where the HTTP server listens. | `8090` |
 | `MODULE_TIMEOUT_SECONDS` | Seconds without a heartbeat before a module is marked `DEGRADED`. | `30` |
 | `ZOMBIE_TIMEOUT_SECONDS` | Seconds without a heartbeat before a module is removed permanently. | `300` |
+| `WATCHDOG_ALERT_WEBHOOK_URL` | Webhook that receives an alert when a module fails or comes back. It usually holds a token: keep it in a secret, never in the code. Without it, nothing is sent. | none |
 | `SERVICE_NAME` | OpenTelemetry service name shown in traces and metrics. | `spool-watchdog` |
 | `OTEL_TRACES_ENDPOINT` | OTLP HTTP endpoint for trace export. | `http://host.docker.internal:4318/v1/traces` |
 | `OTEL_LOGS_ENDPOINT` | OTLP HTTP endpoint for log export. | `http://host.docker.internal:3100/otlp/v1/logs` |
 | `OTEL_METRICS_ENDPOINT` | OTLP HTTP endpoint for metric export. | `http://host.docker.internal:4320/v1/metrics` |
+
+---
+
+## Alerts
+
+With `WATCHDOG_ALERT_WEBHOOK_URL` set, the watchdog sends a `POST` with a JSON body to that address on each of
+these events. The log keeps every event as well.
+
+| `event` | When | Extra fields |
+|---|---|---|
+| `MODULE_DEGRADED` | A module is silent past `MODULE_TIMEOUT_SECONDS` | `reason` |
+| `MODULE_RECOVERED` | A degraded module beats again | `downtimeSeconds` |
+| `MODULE_FINISHED` | A module is silent past `ZOMBIE_TIMEOUT_SECONDS` and is removed | `reason` |
+| `MODULE_STATUS_CHANGED` | A module reports a status other than the one before (a new module counts as `HEALTHY`) | `from`, `to`, `pieces` |
+
+A module starting is not alerted, and the same status reported again is alerted once. The `text` field reads as a
+sentence, so a Slack incoming webhook takes the body as it is:
+
+```json
+{
+  "text": "Spool module orders-crawler reports UNHEALTHY (was HEALTHY). lake: The folder /lake does not exist",
+  "event": "MODULE_STATUS_CHANGED",
+  "module": "orders-crawler",
+  "from": "HEALTHY",
+  "to": "UNHEALTHY",
+  "pieces": [{"piece": "lake", "type": "FILE_SYSTEM", "status": "UNHEALTHY", "reason": "The folder /lake does not exist"}]
+}
+```
+
+`pieces` lists only the pieces that are not healthy. An alert is sent without waiting for the answer: one that fails
+or takes longer than 5 seconds is written to the log as a warning, without the address of the webhook, and is not sent
+again. It never stops the watchdog.
+
+```bash
+docker run -d -p 8090:8090 \
+    -e WATCHDOG_ALERT_WEBHOOK_URL="$SLACK_WEBHOOK_URL" \
+    ghcr.io/spool-framework/watchdog:latest
+```
 
 ---
 
